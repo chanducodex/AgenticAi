@@ -150,8 +150,8 @@ def invoiceParserAPIView(request):
 
         # Step 4: Query model
         start = time.time()
-        # model_response = query_ollama(prompt)
-        model_response = query_openai(prompt)
+        model_response = query_ollama(prompt)
+        # model_response = query_openai(prompt)
         end = time.time()
 
         return JsonResponse({
