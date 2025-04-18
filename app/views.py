@@ -18,7 +18,7 @@ media_root = settings.MEDIA_ROOT
 pdf_image_dir = os.path.join(media_root, "pdf_images")
 os.makedirs(pdf_image_dir, exist_ok=True)
 # Specify the path to Poppler (ONLY for Windows users)
-POPPLER_PATH = r"C:\Program Files\poppler-24.08.0\Library\bin"
+# POPPLER_PATH = r"C:\Program Files\poppler-24.08.0\Library\bin" # Uncomment this line if using Windows and Poppler is installed
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", settings.OPENAI_API_KEY)
@@ -29,7 +29,8 @@ ocr_model = PaddleOCR(use_angle_cls=True, lang='en', use_gpu=True)
 
 # --- Utility Functions ---
 def pdf_to_images(pdf_path: str, dpi: int = 300):
-    images = convert_from_path(pdf_path, dpi=dpi, poppler_path=POPPLER_PATH)
+    # images = convert_from_path(pdf_path, dpi=dpi, poppler_path=POPPLER_PATH) # Uncomment this line if using Windows and Poppler is installed
+    images = convert_from_path(pdf_path, dpi=dpi) # For Linux or MacOS, Poppler is not needed
     image_paths = []
     for i, image in enumerate(images):
         image_path = os.path.join(pdf_image_dir, f"{os.path.basename(pdf_path)}_page_{i+1}.jpg")
