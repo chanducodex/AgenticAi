@@ -1,195 +1,87 @@
-Here’s a rewritten version of the `README.md` with enhanced clarity and structure:
+# 🧾 AgenticAI Invoice Processor
 
-````markdown
-# AgenticAI Invoice Processor
+AgenticAI is an intelligent invoice parsing API built with Django. It leverages OCR and layout-aware parsing to convert scanned or digital invoices into structured JSON output.
 
-The AgenticAI Invoice Processor is a Django-based web application that processes invoices by extracting and analyzing data from uploaded PDF files. It leverages OCR (Optical Character Recognition) and AI-based tools to parse and interpret invoice data.
+## 🚀 Features
 
----
-
-## Table of Contents
-
-- [Features](#features)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Usage](#usage)
-- [API Endpoints](#api-endpoints)
-- [Project Structure](#project-structure)
-- [Contributing](#contributing)
-- [License](#license)
-- [Troubleshooting](#troubleshooting)
-- [Acknowledgments](#acknowledgments)
+- OCR using PaddleOCR
+- Invoice text to structured JSON via LLM
+- REST API to submit PDF invoices and receive parsed results
+- Deployment-ready with Gunicorn + Screen
 
 ---
 
-## Features
+## 🧰 Tech Stack
 
-- **OCR-based Data Extraction**: Converts PDF invoices to text and extracts relevant data.
-- **AI-powered Invoice Parsing**: Analyzes the extracted data using AI for accurate data interpretation.
-- **REST API**: Provides an API endpoint for uploading and processing invoices.
-- **Modular Architecture**: Designed for future enhancements and extensibility.
-
----
-
-## Requirements
-
-### Python Dependencies
-
-- `Django`
-- `djangorestframework`
-- `django-cors-headers`
-- `pdf2image`
-- `paddleocr`
-- `requests`
-
-### System Requirements
-
-- **Python**: Version 3.8 or higher.
-- **Poppler**: Required for PDF rendering.
-- **OpenAI API Key**: For AI-based processing.
+- Python 3.10+
+- Django 5.x
+- Gunicorn (for WSGI serving)
+- Screen (for background process management)
+- PaddleOCR, local LLM (e.g., DeepSeek/Mistral)
 
 ---
 
-## Installation
+## 📦 Installation
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-repo/AgenticAI.git
-cd AgenticAI
+git clone https://github.com/chanducodex/AgenticAi.git
+cd AgenticAi
 ```
-````
 
-### 2. Set Up a Virtual Environment
+### 2. Set Up Python Environment
+
+Create a virtual environment (recommended):
 
 ```bash
 python -m venv env
-env\Scripts\activate  # Windows
-source env/bin/activate  # macOS/Linux
+source env/bin/activate  # On Windows: env\Scripts\activate
 ```
 
-### 3. Install Dependencies
+### 3. Install Requirements
 
 ```bash
+pip install --upgrade pip
 pip install -r requirements.txt
-```
-
-### 4. Install Poppler
-
-- **Windows**: Download Poppler from [Poppler for Windows](https://github.com/oschwartz10612/poppler-windows/releases/) and add the `bin` directory to your system's PATH.
-- **macOS**: Install using Homebrew:
-  ```bash
-  brew install poppler
-  ```
-
-### 5. Set Up Environment Variables
-
-Set your OpenAI API key:
-
-```bash
-export OPENAI_API_KEY=your_api_key  # macOS/Linux
-set OPENAI_API_KEY=your_api_key  # Windows
-```
-
-### 6. Run Database Migrations
-
-```bash
-python manage.py migrate
 ```
 
 ---
 
-## Usage
+## 🛠️ Django Setup
 
-### 1. Start the Development Server
+### 4. Run Server for Testing (Development)
 
 ```bash
 python manage.py runserver
 ```
 
-### 2. Access the API
-
-Open your browser or Postman and navigate to:
-
-```
-http://127.0.0.1:8000/parse-invoice/
-```
-
-### 3. Upload a PDF Invoice
-
-Use the `POST` method to upload a PDF file to the `invoiceParserAPIView` endpoint.
+#### Access locally at: http://localhost:8000/parse-invoice/
 
 ---
 
-## API Endpoints
+## 🧪 Testing the API
 
-### `POST /parse-invoice/`
+Send a POST request with a PDF file:
 
-- **Description**: Uploads a PDF invoice for processing.
-- **Request**:
-  - **Content-Type**: `multipart/form-data`
-  - **Body**: `file` (PDF file)
-- **Response**:
-  - **Status**: `200 OK`
-  - **Body**: JSON object containing the extracted and parsed invoice data.
-
----
-
-## Project Structure
-
-```
-AgenticAI/
-├── manage.py                # Django's entry point
-├── invoice_processor/       # Main Django app
-│   ├── settings.py          # Project settings
-│   ├── urls.py              # URL routing
-│   ├── views.py             # API views
-│   ├── models.py            # Database models
-│   └── serializers.py       # Data serializers
-├── static/                  # Static files (e.g., CSS, JS)
-├── templates/               # HTML templates
-└── requirements.txt         # Python dependencies
+```bash
+curl -X POST http://localhost:8000/parse-invoice/ \
+  -F "invoice_file=@path_to_invoice.pdf"
 ```
 
----
-
-## Contributing
-
-We welcome contributions! Please follow these steps to contribute:
-
-1. Fork the repository.
-2. Create a new branch for your feature or bug fix.
-3. Commit your changes and push them to your fork.
-4. Submit a pull request with a detailed description of your changes.
+The response will be a structured JSON object containing invoice fields.
 
 ---
 
-## License
+## 🖥️ Deployment on Linux Server
 
-This project is licensed under the MIT License. See the `LICENSE` file for more details.
+### 6. Run with Gunicorn inside screen
 
----
+```bash
+screen -S invoiceapi
+gunicorn --workers 3 invoice_processor.wsgi:application
+```
 
-## Troubleshooting
+Gunicorn will start listening on http://127.0.0.1:8000.
 
-### Common Issues
-
-1. **Django ImportError**: Ensure Django is installed and that the virtual environment is activated.
-2. **Poppler Not Found**: Confirm Poppler is installed and its `bin` directory is added to the system PATH.
-3. **OpenAI API Key Missing**: Ensure the `OPENAI_API_KEY` environment variable is correctly set.
-
-If you encounter any issues, please open an issue on the repository.
-
----
-
-## Acknowledgments
-
-- [Django](https://www.djangoproject.com/)
-- [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)
-- [OpenAI](https://openai.com/)
-
-### Improvements:
-
-- **Section Headers**: Added more clarity and organized information in relevant sections like Troubleshooting and Acknowledgments.
-- **Installation Process**: More detailed steps, including system requirements.
-- **Contributing Section**: A more straightforward guide for contributing to the project.
+You can detach from screen with Ctrl+A+D and resume with screen -r invoiceapi.
