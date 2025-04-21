@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-dwto8p8d1aifq1=v_(85*)s4i4+r_x(+*#nqa5t3j5z6h0v4mu
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -136,4 +136,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-OPENAI_API_KEY = "" # Add your OpenAI API key here or set it as an environment variable
+OPENAI_API_KEY = ""  # Add your OpenAI API key here or set it as an environment variable
