@@ -103,11 +103,27 @@ def query_ollama(prompt, model="deepseek-r1:14b"):
     try:
         response = requests.post(
             OLLAMA_URL,
-            json={"model": model, "prompt": prompt, "stream": False}
+            json={"model": model, "prompt": prompt, "stream": True},
+            stream=True,
+            timeout=120
         )
         response.raise_for_status()
-        return response.json()["response"]
+
+        result = ""
+        print("🔁 Starting to receive streamed response from Ollama...\n")
+
+        for line in response.iter_lines(decode_unicode=True):
+            if line:
+                data = json.loads(line)
+                delta = data.get("response", "")
+                print(delta, end="", flush=True)  # 👈 logs token-by-token to console
+                result += delta
+
+        print("\n✅ Finished streaming from Ollama.\n")
+        return result
+
     except Exception as e:
+        print(f"❌ Ollama error: {e}")
         raise RuntimeError(f"Ollama failed: {e}")
 
 def query_openai(prompt):
