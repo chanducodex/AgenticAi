@@ -131,7 +131,7 @@ def invoiceParserAPIView(request):
     if request.method != 'POST':
         return JsonResponse({'message': "Method not allowed."}, status=400)
     
-    uploaded_file = request.FILES.get('file')
+    uploaded_file = request.FILES.get('invoice_file')
     if not uploaded_file:
         return Response({"error": "No PDF file uploaded."}, status=status.HTTP_400_BAD_REQUEST)
 
