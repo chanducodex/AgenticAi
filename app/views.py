@@ -109,33 +109,52 @@ Extract the information and format into the following JSON structure (only outpu
     return prompt_template.replace("{invoice_text}", extracted_text)
 
 
-def query_ollama(prompt, model="deepseek-r1:14b"):
+def query_ollama(
+    prompt: str,
+    model: str = "deepseek-r1:14b",
+    timeout: int = 180
+) -> str:
+    """
+    Send a non‑streaming request to Ollama and return the full response.
+
+    :param prompt: The text prompt to send.
+    :param model: Ollama model identifier.
+    :param timeout: Request timeout in seconds.
+    :return: The full generated string from Ollama.
+    :raises RuntimeError: On HTTP or parsing errors.
+    """
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False
+    }
+
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={"model": model, "prompt": prompt, "stream": True},
-            stream=True,
-            timeout=120
-        )
-        response.raise_for_status()
+        print(f"➤ Sending synchronous request to Ollama (model={model})")
+        resp = requests.post(OLLAMA_URL, json=payload, timeout=timeout)
+        resp.raise_for_status()
 
-        result = ""
-        print("🔁 Starting to receive streamed response from Ollama...\n")
+        response_data = resp.json()
+        # Ollama’s JSON schema for non‑streaming might differ; adapt as needed:
+        # e.g. {"response": "..."} or {"choices":[{"response":"..."}]}
+        if "response" in response_data:
+            result = response_data["response"]
+        elif "choices" in response_data and response_data["choices"]:
+            result = response_data["choices"][0].get("response", "")
+        else:
+            raise ValueError("Unexpected Ollama response format")
 
-        for line in response.iter_lines(decode_unicode=True):
-            if line:
-                data = json.loads(line)
-                delta = data.get("response", "")
-                # 👈 logs token-by-token to console
-                print(delta, end="", flush=True)
-                result += delta
-
-        print("\n✅ Finished streaming from Ollama.\n")
+        print(f"← Received full response ({len(result)} chars)")
+        print(result)  # print the model’s output
         return result
 
-    except Exception as e:
-        print(f"❌ Ollama error: {e}")
-        raise RuntimeError(f"Ollama failed: {e}")
+    except requests.RequestException as e:
+        print(f"❌ Ollama API request failed: {e}")
+        raise RuntimeError(f"Ollama API request failed: {e}")
+
+    except (ValueError, json.JSONDecodeError) as e:
+        print(f"❌ Failed to parse Ollama response: {e}")
+        raise RuntimeError(f"Invalid response from Ollama: {e}")
 
 
 def query_openai(prompt):
