@@ -9,7 +9,7 @@ admin.site.login = csrf_exempt(admin.site.login)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('parse-invoice/', invoiceParserAPIView, name='parse-invoice'),
+    path('api/parse-invoice/', invoiceParserAPIView, name='parse-invoice'),
     path('api/token/',    TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
