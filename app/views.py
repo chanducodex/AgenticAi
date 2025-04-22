@@ -12,13 +12,15 @@ from django.conf import settings
 from pdf2image import convert_from_path
 from paddleocr import PaddleOCR
 import pdb
+from parse_llm_code import extract_first_code
 
 # --- Constants ---
 media_root = settings.MEDIA_ROOT
 pdf_image_dir = os.path.join(media_root, "pdf_images")
 os.makedirs(pdf_image_dir, exist_ok=True)
 # Specify the path to Poppler (ONLY for Windows users)
-# POPPLER_PATH = r"C:\Program Files\poppler-24.08.0\Library\bin" # Uncomment this line if using Windows and Poppler is installed
+# Uncomment this line if using Windows and Poppler is installed
+# POPPLER_PATH = r"D:\\poppler-24.08.0\\Library\\bin"
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", settings.OPENAI_API_KEY)
@@ -28,15 +30,21 @@ OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 ocr_model = PaddleOCR(use_angle_cls=True, lang='en', use_gpu=True)
 
 # --- Utility Functions ---
+
+
 def pdf_to_images(pdf_path: str, dpi: int = 300):
-    # images = convert_from_path(pdf_path, dpi=dpi, poppler_path=POPPLER_PATH) # Uncomment this line if using Windows and Poppler is installed
-    images = convert_from_path(pdf_path, dpi=dpi) # For Linux or MacOS, Poppler is not needed
+    # Uncomment this line if using Windows and Poppler is installed
+    # images = convert_from_path(pdf_path, dpi=dpi, poppler_path=POPPLER_PATH)
+    # For Linux or MacOS, Poppler is not needed
+    images = convert_from_path(pdf_path, dpi=dpi)
     image_paths = []
     for i, image in enumerate(images):
-        image_path = os.path.join(pdf_image_dir, f"{os.path.basename(pdf_path)}_page_{i+1}.jpg")
+        image_path = os.path.join(
+            pdf_image_dir, f"{os.path.basename(pdf_path)}_page_{i+1}.jpg")
         image.save(image_path, 'JPEG')
         image_paths.append(image_path)
     return image_paths
+
 
 def extract_text_from_images(images):
     result_text = ""
@@ -45,6 +53,7 @@ def extract_text_from_images(images):
         for line in result[0]:
             result_text += line[1][0] + "\n"
     return result_text
+
 
 def build_prompt(extracted_text):
     # Replace this with the actual JSON schema you want in the prompt
@@ -99,6 +108,7 @@ Extract the information and format into the following JSON structure (only outpu
 """
     return prompt_template.replace("{invoice_text}", extracted_text)
 
+
 def query_ollama(prompt, model="deepseek-r1:14b"):
     try:
         response = requests.post(
@@ -116,7 +126,8 @@ def query_ollama(prompt, model="deepseek-r1:14b"):
             if line:
                 data = json.loads(line)
                 delta = data.get("response", "")
-                print(delta, end="", flush=True)  # 👈 logs token-by-token to console
+                # 👈 logs token-by-token to console
+                print(delta, end="", flush=True)
                 result += delta
 
         print("\n✅ Finished streaming from Ollama.\n")
@@ -125,6 +136,7 @@ def query_ollama(prompt, model="deepseek-r1:14b"):
     except Exception as e:
         print(f"❌ Ollama error: {e}")
         raise RuntimeError(f"Ollama failed: {e}")
+
 
 def query_openai(prompt):
     headers = {
@@ -136,23 +148,28 @@ def query_openai(prompt):
         'messages': [{"role": "user", "content": prompt}],
         'temperature': 0
     }
-    response = requests.post(OPENAI_URL, headers=headers, data=json.dumps(data))
+    response = requests.post(
+        OPENAI_URL, headers=headers, data=json.dumps(data))
     response.raise_for_status()
-    return response.json()["choices"][0]["message"]["content"]
+    llm_output = response.json()["choices"][0]["message"]["content"]
+    return llm_output
 
 # --- API View ---
+
+
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
 def invoiceParserAPIView(request):
     if request.method != 'POST':
         return JsonResponse({'message': "Method not allowed."}, status=400)
-    
+
     uploaded_file = request.FILES.get('invoice_file')
     if not uploaded_file:
         return Response({"error": "No PDF file uploaded."}, status=status.HTTP_400_BAD_REQUEST)
 
     # Save uploaded file to media/uploads
-    pdf_path = default_storage.save(f"uploads/{uploaded_file.name}", uploaded_file)
+    pdf_path = default_storage.save(
+        f"uploads/{uploaded_file.name}", uploaded_file)
     full_pdf_path = os.path.join(default_storage.location, pdf_path)
 
     try:
@@ -169,10 +186,22 @@ def invoiceParserAPIView(request):
         start = time.time()
         model_response = query_ollama(prompt)
         # model_response = query_openai(prompt)
+        # Try to extract the first code block
+        code_block = extract_first_code(model_response)
+
+        if code_block:
+            # If a code block is found, use its content
+            print("Extracted code block:", code_block.context)
+            cleaned = code_block.context
+        else:
+            print("No code block found, using full LLM output.")
+            # No markdown-style code found; return the full LLM output
+            cleaned = model_response.strip()
         end = time.time()
 
         return JsonResponse({
-            "response": model_response,
+            # parse the model response to JSON
+            "result": json.loads(cleaned),
             "inference_time_seconds": round(end - start, 2)
         })
 
